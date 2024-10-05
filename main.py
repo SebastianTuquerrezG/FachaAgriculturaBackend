@@ -13,6 +13,7 @@ def read_root():
 @app.get("/weather_data")
 def read_item():
     df_grid_timeseries = meteomatics_api.query_grid_timeseries()
+    print(df_grid_timeseries)
 
     return {
         "df_grid_timeseries": df_grid_timeseries.to_dict(orient="records")
