@@ -1,37 +1,54 @@
 from fastapi import FastAPI
 from app.meteomatics_api import MeteomaticsAPI
+import requests
 import googlemaps
 
 app = FastAPI()
-meteomatics_api = MeteomaticsAPI()
+# meteomatics_api = MeteomaticsAPI()
 gmaps = googlemaps.Client(key='AIzaSyB-e2EAWcPz5DFaT00Xu34SyTCPKSgsDek')
 
 
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
+# @app.get("/")
+# def read_root():
+#     return {"Hello": "World"}
 
 
-@app.get("/weather_data")
-def read_item():
-    df_grid_timeseries = meteomatics_api.query_grid_timeseries()
-    print(df_grid_timeseries)
+# @app.get("/weather_data")
+# def read_item():
+#     df_grid_timeseries = meteomatics_api.query_grid_timeseries()
+#     print(df_grid_timeseries)
 
-    return {
-        "df_grid_timeseries": df_grid_timeseries.to_dict(orient="records")
+#     return {
+#         "df_grid_timeseries": df_grid_timeseries.to_dict(orient="records")
+#     }
+
+# Tu clave API de Google
+key = 'AIzaSyB-e2EAWcPz5DFaT00Xu34SyTCPKSgsDek'
+url = f'https://www.googleapis.com/geolocation/v1/geolocate?key={key}'
+
+@app.post("/geolocate/")
+def geolocate():
+    # Datos del cuerpo de la solicitud
+    data = {
+        "considerIp": "true"
     }
 
-@app.post("/geocode/")
-def get_coordinates(address: str):
-    # Realizar la geocodificación
-    geocode_result = gmaps.geocode(address)
+    # Hacer la petición POST
+    response = requests.post(url, json=data)
 
-    if geocode_result:
-        # Extraer las coordenadas (latitud y longitud)
-        coordenadas = geocode_result[0]['geometry']['location']
+    # Verificar el estado de la respuesta
+    if response.status_code == 200:
+        # La solicitud fue exitosa
+        respuesta = response.json()
+        
+        # Extraer latitud y longitud
+        latitud = respuesta.get('location', {}).get('lat')
+        longitud = respuesta.get('location', {}).get('lng')
+        
         return {
-            "latitud": coordenadas['lat'],
-            "longitud": coordenadas['lng']
+            "latitud": latitud,
+            "longitud": longitud
         }
     else:
-        return {"error": "No se encontraron coordenadas para la dirección proporcionada."}
+        # Hubo un error con la solicitud
+        return {"error": response.status_code, "message": response.text}
