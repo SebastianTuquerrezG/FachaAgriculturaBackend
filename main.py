@@ -2,28 +2,27 @@ from fastapi import FastAPI
 from app.meteomatics_api import MeteomaticsAPI
 import requests
 import googlemaps
+import os
 
 app = FastAPI()
-# meteomatics_api = MeteomaticsAPI()
-gmaps = googlemaps.Client(key='AIzaSyB-e2EAWcPz5DFaT00Xu34SyTCPKSgsDek')
+meteomatics_api = MeteomaticsAPI()
+
+@app.get("/")
+def read_root():
+    return {"Hello": "World"}
 
 
-# @app.get("/")
-# def read_root():
-#     return {"Hello": "World"}
+@app.get("/weather_data")
+def read_item():
+    df_grid_timeseries = meteomatics_api.query_grid_timeseries()
+    print(df_grid_timeseries)
 
-
-# @app.get("/weather_data")
-# def read_item():
-#     df_grid_timeseries = meteomatics_api.query_grid_timeseries()
-#     print(df_grid_timeseries)
-
-#     return {
-#         "df_grid_timeseries": df_grid_timeseries.to_dict(orient="records")
-#     }
+    return {
+        "df_grid_timeseries": df_grid_timeseries.to_dict(orient="records")
+    }
 
 # Tu clave API de Google
-key = 'AIzaSyB-e2EAWcPz5DFaT00Xu34SyTCPKSgsDek'
+key = os.getenv('GOOGLE_API_KEY')
 url = f'https://www.googleapis.com/geolocation/v1/geolocate?key={key}'
 
 @app.post("/geolocate/")
