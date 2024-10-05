@@ -1,15 +1,18 @@
 from __future__ import print_function
 import pandas as pd
+from dotenv import load_dotenv
+import os
 
 # 1. Importa los módulos necesarios: datetime y meteomatics.api.
 import datetime as dt
 import meteomatics.api as api
 
+load_dotenv()
 pd.set_option('display.max_rows', 100)
 
 # 2. Define las credenciales de autenticación: nombre de usuario y contraseña.
-username = ''
-password = ''
+username = os.getenv('USERNAMEAPI')
+password = os.getenv('PASSWORD')
 
 # 3. Obtiene la fecha y hora actual en formato UTC y la establece a medianoche.
 now = dt.datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
