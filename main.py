@@ -1,6 +1,8 @@
 from fastapi import FastAPI
-from app.meteomatics_api import WeatherData
+from app.meteomatics_api import MeteomaticsAPI
+
 app = FastAPI()
+meteomatics_api = MeteomaticsAPI()
 
 
 @app.get("/")
@@ -10,4 +12,8 @@ def read_root():
 
 @app.get("/weather_data")
 def read_item():
-    return WeatherData('restrepo_pablo', 'ou3J1Kx3KS').query_weather_data('2021-01-01T00:00:00Z', '2021-01-01T01:00:00Z', '1h', 't_2m:C,precip_1h:mm', 47.5, 8.5, 47.0, 9.0, 0.01, 0.01)
+    df_grid_timeseries = meteomatics_api.query_grid_timeseries()
+
+    return {
+        "df_grid_timeseries": df_grid_timeseries.to_dict(orient="records")
+    }
