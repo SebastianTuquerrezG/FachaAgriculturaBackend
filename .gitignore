@@ -13,7 +13,9 @@ build/
 *.egg
 
 # Virtual environments
-
+venv/
+env/
+.env
 
 # IDE specific files
 .idea/
