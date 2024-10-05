@@ -1,47 +1,55 @@
-import pandas as pd
 import os
 from dotenv import load_dotenv
 import datetime as dt
 import meteomatics.api as api
+import pandas as pd
+import json
+
 
 load_dotenv()
-pd.set_option('display.max_rows', 100)
 
 
 class MeteomaticsAPI:
     def __init__(self):
         self.username = os.getenv('USERNAMEAPI')
         self.password = os.getenv('PASSWORD')
-        self.now = dt.datetime.utcnow().replace(
-            hour=0, minute=0, second=0, microsecond=0)
-        self.startdate_ts = self.now
-        self.enddate_ts = self.startdate_ts + dt.timedelta(days=10)
-        self.interval_ts = dt.timedelta(hours=12)
-        self.parameters_ts = ['t_2m:C', 'precip_1h:mm']
-        self.lat_N = 3.5
-        self.lon_W = -78.5
-        self.lat_S = 1.5
-        self.lon_E = -75.5
-        self.res_lat = 0.5
-        self.res_lon = 0.5
 
-    def query_grid_timeseries(self):
+    def data_to_json(self, data):
+        # Crear DataFrame a partir de los datos
+        df = pd.DataFrame(data)
+
+        # Restablecer los índices para que 'lat', 'lon', y 'validdate' se conviertan en columnas
+        df_reset = df.reset_index()
+
+        # Convertir la columna 'validdate' a string para evitar problemas de serialización
+        df_reset['validdate'] = df_reset['validdate'].astype(str)
+
+        # Convertir el DataFrame a diccionario orientado a registros
+        dict_data = df_reset.to_dict(orient='records')
+
+        # Convertir el diccionario a formato JSON
+        json_data = json.dumps(dict_data, ensure_ascii=False)
+
+        return json_data
+
+    def query_grid_timeseries(self, startdate_ts, hours: int, days: int, lat_n: float, lon_w: float, lat_s: float, lon_e: float, res_lat: float, res_lon: float):
         try:
+            startdate_ts = dt.datetime(*startdate_ts)
             df_grid_timeseries = api.query_grid_timeseries(
-                self.startdate_ts,
-                self.enddate_ts,
-                self.interval_ts,
-                self.parameters_ts,
-                self.lat_N,
-                self.lon_W,
-                self.lat_S,
-                self.lon_E,
-                self.res_lat,
-                self.res_lon,
-                self.username,
-                self.password
+                startdate=startdate_ts,
+                enddate=startdate_ts + dt.timedelta(days=days),
+                lat_N=lat_n,
+                lon_W=lon_w,
+                lat_S=lat_s,
+                lon_E=lon_e,
+                interval=dt.timedelta(hours=hours),
+                parameters=['t_2m:C', 'precip_1h:mm'],
+                res_lat=res_lat,
+                res_lon=res_lon,
+                username=self.username,
+                password=self.password
             )
-            return df_grid_timeseries
+            return self.data_to_json(df_grid_timeseries)
         except Exception as e:
             print(e)
 
@@ -57,6 +65,3 @@ class MeteomaticsAPI:
         just_at_12UTC = df_grid_timeseries[df_grid_timeseries.index.get_level_values(
             'validdate').hour == 12]
         return just_precipitation, first_value_of_precipitation, just_at_12UTC
-
-
-print(MeteomaticsAPI().query_grid_timeseries())
