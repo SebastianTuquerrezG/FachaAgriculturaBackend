@@ -42,6 +42,25 @@ def weather_data(body: dict):
 key = os.getenv('GOOGLE_API_KEY')
 url = f'https://www.googleapis.com/geolocation/v1/geolocate?key={key}'
 
+@app.post("/heat_data")
+def heat_data(body: dict):
+    startdate_ts = body['startdate_ts']
+    hours = body['hours']
+    days = body['days']
+    lat_n = body['lat_n']
+    lon_w = body['lon_w']
+    lat_s = body['lat_s']
+    lon_e = body['lon_e']
+    res_lat = body['res_lat']
+    res_lon = body['res_lon']
+
+    date_obj = datetime.datetime.strptime(startdate_ts, "%Y-%m-%d")
+    date_tuple = (date_obj.year, date_obj.month, date_obj.day)
+
+    data = meteomatics_api.query_heat_timeseries(
+        date_tuple, hours, days, lat_n, lon_w, lat_s, lon_e, res_lat, res_lon)
+
+    return data
 
 @app.post("/geolocate/")
 def geolocate():
