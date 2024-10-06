@@ -30,8 +30,7 @@ class GoogleAPI:
 
     def __init__(self):
         self.key = os.getenv('GOOGLE_API_KEY')
-        self.url = f'https://www.googleapis.com/geolocation/v1/geolocate?key={
-            self.key}'
+        self.url = f'https://www.googleapis.com/geolocation/v1/geolocate?key={self.key}'
 
     def geolocate(self) -> dict:
         """
