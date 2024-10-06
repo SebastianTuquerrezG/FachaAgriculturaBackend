@@ -6,6 +6,7 @@ application and the endpoints for querying weather data and geolocating the user
 import datetime
 import uvicorn
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from app.meteomatics_api import MeteomaticsAPI
 from app.google_api import GoogleAPI
 
@@ -13,6 +14,16 @@ from app.google_api import GoogleAPI
 app = FastAPI()
 meteomatics_api = MeteomaticsAPI()
 google_api = GoogleAPI()
+
+origins = ["*"]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/")
