@@ -72,7 +72,7 @@ class MeteomaticsAPI:
                 password=self.password
             )
             
-            print(f"Respuesta de la API: {df_heat_timeseries}")
+            print(f"Response of API: {df_heat_timeseries}")
             
             df_heat_timeseries.reset_index(inplace=True)
             df_heat_timeseries['validdate'] = pd.to_datetime(df_heat_timeseries['validdate'])
@@ -98,7 +98,7 @@ class MeteomaticsAPI:
                     consecutive_heat_days = 0            
 
                 if consecutive_heat_days >= consecutive_days_threshold:
-                    print(f"Ola de calor detectada a partir del {heat_days[0]} durante {consecutive_heat_days} días.")
+                    print(f"Heat wave start at {heat_days[0]} still {consecutive_heat_days} days.")
                     break 
 
             return {
@@ -108,8 +108,8 @@ class MeteomaticsAPI:
                 "potential_heat_wave": heat_days if consecutive_heat_days >= consecutive_days_threshold else []
             }
         except Exception as e:
-            print(f"Error al consultar la serie temporal de índice de calor: {e}")
-            return {"error": "Error al obtener los datos de índice de calor"}, 500
+            print(f"Error to request the heat wave indicator: {e}")
+            return {"error": "Error to get the hear wave indicator"}, 500
 
 
     
