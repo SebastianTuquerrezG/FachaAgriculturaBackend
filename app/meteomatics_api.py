@@ -172,8 +172,6 @@ class MeteomaticsAPI:
                     consecutive_heat_days = 0
 
                 if consecutive_heat_days >= consecutive_days_threshold:
-                    print(f"Heat wave start at {heat_days[0]} still {
-                          consecutive_heat_days} days.")
                     break
 
             return {
