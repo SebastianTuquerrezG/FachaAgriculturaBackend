@@ -3,4 +3,3 @@ meteomatics
 python-dotenv
 fastapi
 uvicorn
-googlemaps
