@@ -125,6 +125,9 @@ class MeteomaticsAPI:
                               east_longitude: float,
                               latitude_resolution: float,
                               longitude_resolution: float) -> dict:
+        """
+        Queries the heat timeseries data from the Meteomatics API.
+        """
         try:
             start_date = dt.datetime(*start_date)
 
@@ -142,8 +145,6 @@ class MeteomaticsAPI:
                 username=self.username,
                 password=self.password
             )
-
-            print(f"Response of API: {df_heat_timeseries}")
 
             df_heat_timeseries.reset_index(inplace=True)
             df_heat_timeseries['validdate'] = pd.to_datetime(
