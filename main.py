@@ -1,89 +1,86 @@
-import os
+"""
+This module is the main entry point for the application. It defines the FastAPI
+application and the endpoints for querying weather data and geolocating the user.
+"""
+
 import datetime
-import requests
 import uvicorn
 from fastapi import FastAPI
 from app.meteomatics_api import MeteomaticsAPI
+from app.google_api import GoogleAPI
 
 
 app = FastAPI()
 meteomatics_api = MeteomaticsAPI()
-
-key = os.getenv('GOOGLE_API_KEY')
-url = f'https://www.googleapis.com/geolocation/v1/geolocate?key={key}'
+google_api = GoogleAPI()
 
 
 @app.get("/")
-def read_root():
-    return {"Hello": "World"}
+def read_root() -> dict:
+    """
+    Returns a list of available endpoints for the application.
+    """
+
+    return {
+        "endpoints": [
+            "/",
+            "/weather_data",
+            "/geolocate"
+        ]
+    }
 
 
 @app.post("/weather_data")
-def weather_data(body: dict):
-    startdate_ts = body['startdate_ts']
-    hours = body['hours']
-    days = body['days']
-    lat_n = body['lat_n']
-    lon_w = body['lon_w']
-    lat_s = body['lat_s']
-    lon_e = body['lon_e']
-    res_lat = body['res_lat']
-    res_lon = body['res_lon']
-
-    date_obj = datetime.datetime.strptime(startdate_ts, "%Y-%m-%d")
-    date_tuple = (date_obj.year, date_obj.month, date_obj.day)
+def weather_data(body: dict) -> dict:
+    """
+    Queries the Meteomatics API for weather data based on the given parameters.
+    """
 
     data = meteomatics_api.query_grid_timeseries(
-        date_tuple, hours, days, lat_n, lon_w, lat_s, lon_e, res_lat, res_lon)
+        datetime.datetime.strptime(
+            body['start_date'], "%Y-%m-%d").timetuple()[:3],
+        body['interval_hours'],
+        body['end_interval_days'],
+        body['north_latitude'],
+        body['west_longitude'],
+        body['south_latitude'],
+        body['east_longitude'],
+        body['latitude_resolution'],
+        body['longitude_resolution']
+    )
 
     return data
 
-
-key = os.getenv('GOOGLE_API_KEY')
-url = f'https://www.googleapis.com/geolocation/v1/geolocate?key={key}'
 
 @app.post("/heat_data")
 def heat_data(body: dict):
-    startdate_ts = body['startdate_ts']
-    hours = body['hours']
-    days = body['days']
-    lat_n = body['lat_n']
-    lon_w = body['lon_w']
-    lat_s = body['lat_s']
-    lon_e = body['lon_e']
-    res_lat = body['res_lat']
-    res_lon = body['res_lon']
-
-    date_obj = datetime.datetime.strptime(startdate_ts, "%Y-%m-%d")
-    date_tuple = (date_obj.year, date_obj.month, date_obj.day)
-
+    """
+    Queries the Meteomatics API for heat data based on the given parameters.
+    """
     data = meteomatics_api.query_heat_timeseries(
-        date_tuple, hours, days, lat_n, lon_w, lat_s, lon_e, res_lat, res_lon)
+        datetime.datetime.strptime(
+            body['start_date'], "%Y-%m-%d").timetuple()[:3],
+        body['interval_hours'],
+        body['end_interval_days'],
+        body['north_latitude'],
+        body['west_longitude'],
+        body['south_latitude'],
+        body['east_longitude'],
+        body['latitude_resolution'],
+        body['longitude_resolution']
+    )
 
     return data
 
-@app.post("/geolocate/")
-def geolocate():
-    data = {
-        "considerIp": "true"
-    }
 
-    response = requests.post(url, json=data, timeout=10)
+@app.get("/geolocate")
+def geolocate() -> dict:
+    """
+    Geolocates the user's IP address using the Google Maps Geolocation API.
+    """
 
-    if response.status_code == 200:
-        response_data = response.json()
-        print(response_data)
-
-        latitude = response_data.get('location', {}).get('lat')
-        longitude = response_data.get('location', {}).get('lng')
-
-        return {
-            "latitude": latitude,
-            "longitude": longitude
-        }
-    return {"error": response.status_code, "message": response.text}
+    return google_api.geolocate()
 
 
 if __name__ == "__main__":
-
     uvicorn.run(app, host="0.0.0.0", port=8000)

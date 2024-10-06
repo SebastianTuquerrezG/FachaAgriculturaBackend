@@ -1,105 +1,180 @@
+"""
+A module that interacts with the Meteomatics API to query weather data.
+"""
+
 import os
-from dotenv import load_dotenv
 import datetime as dt
+from dotenv import load_dotenv
 import meteomatics.api as api
 import pandas as pd
-import json
 
 
 load_dotenv()
 
 
 class MeteomaticsAPI:
+    """
+    A class that interacts with the Meteomatics API to query weather data.
+
+    Attributes:
+        username (str): The username for accessing the Meteomatics API.
+        password (str): The password for accessing the Meteomatics API.
+
+    Methods:
+        data_to_json(data) -> dict:
+            Converts the given data to a dictionary format.
+
+        query_grid_timeseries(start_date, interval_hours, end_interval_days,
+                              north_latitude, west_longitude, south_latitude, east_longitude,
+                              latitude_resolution, longitude_resolution) -> dict:
+            Queries the grid timeseries data from the Meteomatics API.
+
+        get_temperature_stats(df_grid_timeseries) -> dict:
+            Calculates the maximum, minimum, and mean temperature from the given
+            grid timeseries data.
+    """
+
     def __init__(self):
         self.username = os.getenv('USERNAMEAPI')
         self.password = os.getenv('PASSWORD')
 
-    def data_to_json(self, data):
-        # Crear DataFrame a partir de los datos
+    def data_to_json(self, data) -> dict:
+        """
+        Converts the given data to a dictionary format.
+
+        Args:
+            data: The data to be converted.
+
+        Returns:
+            A dictionary representation of the data.
+        """
+
         df = pd.DataFrame(data)
-
-        # Restablecer los índices para que 'lat', 'lon', y 'validdate' se conviertan en columnas
         df_reset = df.reset_index()
-
-        # Convertir la columna 'validdate' a string para evitar problemas de serialización
+        df_reset = df.reset_index().copy()
         df_reset['validdate'] = df_reset['validdate'].astype(str)
 
-        # Convertir el DataFrame a diccionario orientado a registros
         dict_data = df_reset.to_dict(orient='records')
+        return dict_data
 
-        # Convertir el diccionario a formato JSON
-        json_data = json.dumps(dict_data, ensure_ascii=False)
+    def query_grid_timeseries(self,
+                              start_date,
+                              interval_hours: int,
+                              end_interval_days: int,
+                              north_latitude: float,
+                              west_longitude: float,
+                              south_latitude: float,
+                              east_longitude: float,
+                              latitude_resolution: float,
+                              longitude_resolution: float) -> dict:
+        """
+        Queries the grid timeseries data from the Meteomatics API.
 
-        return json_data
+        Args:
+            start_date: The start date of the query.
+            interval_hours (int): The interval in hours between data points.
+            end_interval_days (int): The number of days to query.
+            north_latitude (float): The latitude of the northern boundary.
+            west_longitude (float): The longitude of the western boundary.
+            south_latitude (float): The latitude of the southern boundary.
+            east_longitude (float): The longitude of the eastern boundary.
+            latitude_resolution (float): The resolution of the latitude grid.
+            longitude_resolution (float): The resolution of the longitude grid.
 
-    def query_grid_timeseries(self, startdate_ts, hours: int, days: int, lat_n: float, lon_w: float, lat_s: float, lon_e: float, res_lat: float, res_lon: float):
+        Returns:
+            A dictionary containing the queried grid timeseries data and temperature statistics.
+        """
+
         try:
-            startdate_ts = dt.datetime(*startdate_ts)
+            start_date = dt.datetime(*start_date)
             df_grid_timeseries = api.query_grid_timeseries(
-                startdate=startdate_ts,
-                enddate=startdate_ts + dt.timedelta(days=days),
-                lat_N=lat_n,
-                lon_W=lon_w,
-                lat_S=lat_s,
-                lon_E=lon_e,
-                interval=dt.timedelta(hours=hours),
+                startdate=start_date,
+                enddate=start_date + dt.timedelta(days=end_interval_days),
+                lat_N=north_latitude,
+                lon_W=west_longitude,
+                lat_S=south_latitude,
+                lon_E=east_longitude,
+                interval=dt.timedelta(hours=interval_hours),
                 parameters=['t_2m:C', 'precip_1h:mm'],
-                res_lat=res_lat,
-                res_lon=res_lon,
+                res_lat=latitude_resolution,
+                res_lon=longitude_resolution,
                 username=self.username,
                 password=self.password
             )
-            return self.data_to_json(df_grid_timeseries)
+
+            grid_timeseries_data = self.data_to_json(df_grid_timeseries)
+            get_temperature_stats_data = self.get_temperature_stats(
+                df_grid_timeseries)
+
+            data = {
+                "temperature_stats": get_temperature_stats_data,
+                "grid_timeseries": grid_timeseries_data
+            }
+            return data
+
         except Exception as e:
-            print(e)
-            
-    def query_heat_timeseries(self, startdate_ts, hours: int, days: int, lat_n: float, lon_w: float, lat_s: float, lon_e: float, res_lat: float, res_lon: float):
+            return {"error": str(e)}
+
+    def query_heat_timeseries(self,
+                              start_date,
+                              interval_hours: int,
+                              end_interval_days: int,
+                              north_latitude: float,
+                              west_longitude: float,
+                              south_latitude: float,
+                              east_longitude: float,
+                              latitude_resolution: float,
+                              longitude_resolution: float) -> dict:
         try:
-            startdate_ts = dt.datetime(*startdate_ts)
-            
+            start_date = dt.datetime(*start_date)
+
             df_heat_timeseries = api.query_grid_timeseries(
-                startdate=startdate_ts,
-                enddate=startdate_ts + dt.timedelta(days=days),
-                lat_N=lat_n,
-                lon_W=lon_w,
-                lat_S=lat_s,
-                lon_E=lon_e,
-                interval=dt.timedelta(hours=hours),
-                parameters=['t_2m:C'],  
-                res_lat=res_lat,
-                res_lon=res_lon,
+                startdate=start_date,
+                enddate=start_date + dt.timedelta(days=end_interval_days),
+                lat_N=north_latitude,
+                lon_W=west_longitude,
+                lat_S=south_latitude,
+                lon_E=east_longitude,
+                interval=dt.timedelta(hours=interval_hours),
+                parameters=['t_2m:C', 'precip_1h:mm'],
+                res_lat=latitude_resolution,
+                res_lon=longitude_resolution,
                 username=self.username,
                 password=self.password
             )
-            
+
             print(f"Response of API: {df_heat_timeseries}")
-            
+
             df_heat_timeseries.reset_index(inplace=True)
-            df_heat_timeseries['validdate'] = pd.to_datetime(df_heat_timeseries['validdate'])
-            
-            daily_max_temps = df_heat_timeseries.groupby(df_heat_timeseries['validdate'].dt.date)['t_2m:C'].max()
-            daily_min_temps = df_heat_timeseries.groupby(df_heat_timeseries['validdate'].dt.date)['t_2m:C'].min()
-            
+            df_heat_timeseries['validdate'] = pd.to_datetime(
+                df_heat_timeseries['validdate'])
+
+            daily_max_temps = df_heat_timeseries.groupby(
+                df_heat_timeseries['validdate'].dt.date)['t_2m:C'].max()
+            daily_min_temps = df_heat_timeseries.groupby(
+                df_heat_timeseries['validdate'].dt.date)['t_2m:C'].min()
+
             max_temp_threshold = 35  # °C
             min_temp_threshold = 20   # °C
             consecutive_days_threshold = 3
-            
+
             consecutive_heat_days = 0
             heat_days = []
-            
+
             for date in daily_max_temps.index:
                 max_temp = daily_max_temps[date]
                 min_temp = daily_min_temps[date]
-                
+
                 if max_temp > max_temp_threshold and min_temp > min_temp_threshold:
                     consecutive_heat_days += 1
                     heat_days.append(date)
                 else:
-                    consecutive_heat_days = 0            
+                    consecutive_heat_days = 0
 
                 if consecutive_heat_days >= consecutive_days_threshold:
-                    print(f"Heat wave start at {heat_days[0]} still {consecutive_heat_days} days.")
-                    break 
+                    print(f"Heat wave start at {heat_days[0]} still {
+                          consecutive_heat_days} days.")
+                    break
 
             return {
                 "data": self.data_to_json(df_heat_timeseries),
@@ -111,17 +186,24 @@ class MeteomaticsAPI:
             print(f"Error to request the heat wave indicator: {e}")
             return {"error": "Error to get the hear wave indicator"}, 500
 
+    def get_temperature_stats(self, df_grid_timeseries) -> dict:
+        """
+        Calculates the maximum, minimum, and mean temperature from the given grid timeseries data.
 
-    
-    def get_temperature_stats(self, df_grid_timeseries):
+        Args:
+            df_grid_timeseries: The grid timeseries data.
+
+        Returns:
+            A dictionary containing the maximum, minimum, and mean temperature.
+        """
+
         maximum_temperature = df_grid_timeseries['t_2m:C'].max()
         minimum_temperature = df_grid_timeseries['t_2m:C'].min()
         mean_temperature = df_grid_timeseries['t_2m:C'].mean()
-        return maximum_temperature, minimum_temperature, mean_temperature
 
-    def get_precipitation_data(self, df_grid_timeseries):
-        just_precipitation = df_grid_timeseries['precip_1h:mm']
-        first_value_of_precipitation = df_grid_timeseries.iloc[0]['precip_1h:mm']
-        just_at_12UTC = df_grid_timeseries[df_grid_timeseries.index.get_level_values(
-            'validdate').hour == 12]
-        return just_precipitation, first_value_of_precipitation, just_at_12UTC
+        data = {
+            "maximum_temperature": float(maximum_temperature),
+            "minimum_temperature": float(minimum_temperature),
+            "mean_temperature": float(mean_temperature)
+        }
+        return data
