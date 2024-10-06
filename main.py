@@ -16,7 +16,7 @@ google_api = GoogleAPI()
 
 
 @app.get("/")
-def read_root() -> dict:
+def index() -> dict:
     """
     Returns a list of available endpoints for the application.
     """
@@ -25,6 +25,7 @@ def read_root() -> dict:
         "endpoints": [
             "/",
             "/weather_data",
+            "/heat_data",
             "/geolocate"
         ]
     }
